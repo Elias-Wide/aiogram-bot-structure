@@ -1,4 +1,4 @@
-"""Модуль содержит заглушку на выполнение неподдерживаемых команд."""
+"""This module contains handlers for unsupported commands and banned users."""
 
 from aiogram import Router
 from aiogram.types import Message
@@ -13,15 +13,25 @@ ban_router.message.filter(~BanFilter())
 
 @echo_router.message()
 async def send_echo(message: Message) -> None:
-    """Возвращает текст при получении неподдерживаемой команды."""
+    """
+    Sends a reply when an unsupported command is received.
+
+    Args:
+        message (Message): The message object containing the unsupported command.
+    """
     await message.reply(
-        f"На данный момент я не поддерживаю команду {message.text} 🤷\n\n"
-        f"Могу предложить вам обратиться к @{settings.telegram.admin_username} "
-        "с предложением по улучшению бота или багрепортом."
+        f"Currently, I do not support the command {message.text} 🤷\n\n"
+        f"You can contact @{settings.telegram.admin_username} with suggestions "
+        "to improve the bot or to report a bug."
     )
 
 
 @ban_router.message()
 async def send_banned_message(message: Message) -> None:
-    """Возвращает текст для забаненного пользователя."""
-    await message.reply("Вам заблокирован доступ к боту.")
+    """
+    Sends a reply to a banned user.
+
+    Args:
+        message (Message): The message object from the banned user.
+    """
+    await message.reply("You are banned from accessing this bot.")

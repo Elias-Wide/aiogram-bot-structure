@@ -15,6 +15,11 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+    """
+    Base Data Access Object (DAO) class for database operations.
+
+    This class provides generic methods for CRUD operations on database models.
+    """
 
     model = None
 
@@ -23,6 +28,15 @@ class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         cls,
         obj_id: int,
     ) -> ModelType | None:
+        """
+        Retrieve an object by its ID.
+
+        Args:
+            obj_id (int): The ID of the object to retrieve.
+
+        Returns:
+            ModelType | None: The retrieved object or None if not found.
+        """
         async with async_session_maker() as session:
             db_obj = await session.execute(
                 select(cls.model).where(cls.model.id == obj_id),
@@ -31,6 +45,12 @@ class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     @classmethod
     async def get_multi(cls):
+        """
+        Retrieve all objects of the model.
+
+        Returns:
+            list[ModelType]: A list of all objects.
+        """
         async with async_session_maker() as session:
             db_objs = await session.execute(select(cls.model))
             return db_objs.scalars().all()
@@ -40,7 +60,15 @@ class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         cls,
         data: dict,
     ) -> ModelType:
-        """Создает объект."""
+        """
+        Create a new object in the database.
+
+        Args:
+            data (dict): The data to create the object with.
+
+        Returns:
+            ModelType: The created object.
+        """
         async with async_session_maker() as session:
             try:
                 query = insert(cls.model).values(**data).returning(cls.model.id)
@@ -53,8 +81,9 @@ class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                     message = "Database Exception"
                 elif isinstance(error, Exception):
                     message = "Unknown Exception"
-                message += ": Не удается добавить данные."
-                logger(error, message)
+                message += ": Unable to add data."
+                logger.error(message)
+                raise error
 
     @classmethod
     async def update(
@@ -62,6 +91,16 @@ class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db_obj: ModelType,
         new_data: UpdateSchemaType,
     ) -> ModelType:
+        """
+        Update an existing object in the database.
+
+        Args:
+            db_obj (ModelType): The object to update.
+            new_data (UpdateSchemaType): The new data to update the object with.
+
+        Returns:
+            ModelType: The updated object.
+        """
         async with async_session_maker() as session:
             try:
                 obj_data = jsonable_encoder(db_obj)
@@ -73,11 +112,21 @@ class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 await session.refresh(db_obj)
                 return db_obj
             except Exception as error:
-                logger(error)
+                logger.error(error)
                 await session.rollback()
+                raise error
 
     @classmethod
     async def delete_object(cls, **kwargs):
+        """
+        Delete an object from the database.
+
+        Args:
+            **kwargs: The filter criteria to find the object to delete.
+
+        Returns:
+            ModelType | None: The deleted object or None if not found.
+        """
         async with async_session_maker() as session:
             try:
                 query = select(cls.model).filter_by(**kwargs)
@@ -85,11 +134,12 @@ class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 result = result.scalar()
                 object_to_delete = result
                 if not result:
-                    raise None
+                    return None
                 await session.delete(result)
                 await session.commit()
                 return object_to_delete
-            except:
+            except Exception as error:
+                logger.error(error)
                 return None
 
     @classmethod
@@ -98,6 +148,16 @@ class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         attr_name: str,
         attr_value: str,
     ) -> ModelType | None:
+        """
+        Retrieve an object by a specific attribute.
+
+        Args:
+            attr_name (str): The name of the attribute.
+            attr_value (str): The value of the attribute.
+
+        Returns:
+            ModelType | None: The retrieved object or None if not found.
+        """
         async with async_session_maker() as session:
             db_obj = await session.execute(
                 select(cls.model).where(
@@ -105,20 +165,3 @@ class BaseDAO(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 ),
             )
             return db_obj.scalars().first()
-
-    @classmethod
-    async def get_actual_objs(
-        cls, attr_name: str, attr_value: int | str, need_actual: bool = True
-    ) -> list[ModelType]:
-        if need_actual:
-            query = and_(
-                getattr(cls.model, attr_name) == attr_value,
-                cls.model.created_at == datetime.now().date(),
-            )
-        else:
-            query = getattr(cls.model, attr_name) == attr_value
-        async with async_session_maker() as session:
-            get_objs = await session.execute(
-                select(cls.model.__table__.columns).where(query)
-            )
-            return get_objs.mappings().all()

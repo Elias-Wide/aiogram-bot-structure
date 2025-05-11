@@ -2,15 +2,13 @@ from aiogram.types import Update
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 import logging
-from sqladmin import Admin
 import uvicorn
 
 
-from app.bot.create_bot import bot, dp, stop_bot, start_bot
+from app.bot.init_bot import bot, dp, stop_bot, start_bot
 
 from app.core.config import settings
 from app.core.database import engine
-from app.users.constants import NOTIFICATION_TIME
 
 WEBHOOK_PATH = f"/bot/{settings.telegram.bot_token.get_secret_value()}"
 WEBHOOK_URL = f"{settings.telegram.webhook_host}/webhook"
@@ -19,7 +17,6 @@ WEBHOOK_URL = f"{settings.telegram.webhook_host}/webhook"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logging.info("Starting bot setup...")
-    dp.include_router(registration_router)
     await start_bot()
     await bot.set_webhook(
         url=WEBHOOK_URL,

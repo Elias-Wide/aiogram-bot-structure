@@ -1,6 +1,6 @@
 services:
   main_bot:
-    image: eliaswide/aiogram-bot-scheme
+    image: eliaswide/aiogram-bot
     env_file:
       - main.env
     restart: on-failure

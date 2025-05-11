@@ -1,20 +1,17 @@
-"""Фильтры участка анкеты."""
+"""Filters for handling user-related checks in the bot."""
 
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
 from app.core.config import settings
-
-
 from app.users.dao import UsersDAO
-
-from app.core.logging import logger
 
 
 class UserExistFilter(BaseFilter):
     """
-    Класс фильтрации пользователя по telegram_id.
-    Возвращает True для зарегистрированного пользователя.
+    Filter class to check if a user exists based on their Telegram ID.
+
+    Returns True for a registered user.
     """
 
     def __init__(self) -> None:
@@ -25,6 +22,15 @@ class UserExistFilter(BaseFilter):
         self,
         message: Message,
     ) -> bool:
+        """
+        Check if the user exists in the database.
+
+        Args:
+            message (Message): The incoming message object.
+
+        Returns:
+            bool: True if the user exists, otherwise False.
+        """
         if self.attr_name == "telegram_id":
             attr_value = message.from_user.id
         else:
@@ -39,24 +45,46 @@ class UserExistFilter(BaseFilter):
 
 
 class BanFilter(UserExistFilter):
-    """Класс фильтрации по наличию бана у пользователя."""
+    """
+    Filter class to check if a user is banned.
+
+    Inherits from UserExistFilter to perform a basic registration check
+    and adds a ban status check.
+    """
 
     async def __call__(self, message: Message):
         """
-        Проверить пользователя на наличие бана.
-        Делает базовую проверку на регистрацию из родительского класса
-        и проверяет на наличие бана.
+        Check if the user is banned.
+
+        Args:
+            message (Message): The incoming message object.
+
+        Returns:
+            bool: False if the user is banned, otherwise the user object.
         """
         user = await super().__call__(message)
-        if user and user["model_obj"].ban == True:
+        if user and user["model_obj"].ban is True:
             return False
         return user
 
 
 class AdminFilter(BaseFilter):
-    """Класс фильтрации по наличию прав админа."""
+    """
+    Filter class to check if the user has admin rights.
+
+    Returns True if the user is the admin.
+    """
 
     async def __call__(self, message: Message):
+        """
+        Check if the user is the admin.
+
+        Args:
+            message (Message): The incoming message object.
+
+        Returns:
+            bool: True if the user is the admin, otherwise False.
+        """
         if message.from_user.id == int(settings.telegram.admin_id):
             return True
         return False

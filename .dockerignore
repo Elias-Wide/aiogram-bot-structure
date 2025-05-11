@@ -1,5 +1,5 @@
 venv
 .git
-qr_trade.code-workspace
+aiogram-bot-structure.code-workspace
 db.env
 main.env

@@ -2,14 +2,10 @@ from sqlalchemy import (
     BOOLEAN,
     BigInteger,
     Column,
-    ForeignKey,
-    Integer,
     String,
 )
 from sqlalchemy.orm import relationship
 
-
-from app.users.constants import MOSCOW_TZ
 from app.core.database import Base
 
 
